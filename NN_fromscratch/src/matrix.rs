@@ -10,12 +10,13 @@ impl Matrix{
     }
 }
 
+// Matrix multiplication
 impl ops::Mul<Matrix> for Matrix {
-    fn mul(self, Matrix:second) -> Result<Matrix> {
-        let mut result = Matrix::new(self.rows, second.cols);
+    fn mul(self, Matrix:second) -> Matrix {
         if self.cols != second.rows {
-            return Err("Matrix dimensions do not match");
+            panic!("Matrix dimensions do not match!");
         }
+        let mut result = Matrix::new(self.rows, second.cols);
         for i in 0..self.rows {
             for j in 0..second.cols {
                 let mut sum:f64 = 0;
@@ -25,6 +26,34 @@ impl ops::Mul<Matrix> for Matrix {
                 result.data[i*second.cols +j] = sum;
             }
         }
-        return Ok(result);
+        return result;
+    }
+}
+
+// Matrix addition
+impl ops::Sum<Matrix> for Matrix {
+    fn sum(self, Matrix::second) -> Matrix {
+        if self.cols != second.cols || self.rows != second.rows {
+            panic!("Matrix dimensions do not match!");
+        }
+        let mut result = Matrix::new(self.rows, self.cols);
+        for i in 0..self.data.len() {
+            result.data[i] = self.data[i]+second.data[i];
+        }
+        return result;
+    }
+}
+
+// Multiplication of Matrix by a scalar
+impl ops::Mul<f64> for Matrix {
+    fn mul(self, f64:scalar)-> Matrix {
+        let mut result = Matrix::new(self.rows, self.cols);
+        if scalar == 0{
+            return result;
+        }
+        for i in 0..self.data.len() {
+            result.data[i] = self.data[i]*scalar;
+        }
+        return result;
     }
 }

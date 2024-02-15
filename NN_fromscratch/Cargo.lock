@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "NN_fromscratch"
+name = "nn_fromscratch"
 version = "0.1.0"
