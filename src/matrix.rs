@@ -1,12 +1,14 @@
 use std::ops;
 
+#[derive(Debug)]
 pub struct Matrix {
-    rows: usize,   
-    cols: usize,
-    data: Vec<f64>
+    pub rows: usize,   
+    pub cols: usize,
+    pub data: Vec<f64>
 }
+
 impl Matrix{
-    fn new(rows:usize, cols:usize) -> Matrix {
+    pub fn new(rows:usize, cols:usize) -> Matrix {
         let data = vec![0.0; rows*cols];
         Matrix{rows, cols, data}
     }
