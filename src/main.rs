@@ -1,6 +1,5 @@
 use nanorand::{Rng, WyRand};
 use std::ops;
-use std::cmp;
 
 #[derive(Clone)]
 pub struct Matrix {
@@ -24,6 +23,11 @@ impl Matrix {
             .iter()
             .map(|_| (rng.generate_range(min_int..=max_int) as f64) / 100.0)
             .collect();
+    }
+    pub fn normalize(&self) {
+        let sum: f64 = self.data.iter().sum();
+        let mut normalized = self.clone();
+        normalized.data = normalized.data.iter().map(|x| x / sum).collect();
     }
 }
 
@@ -57,9 +61,24 @@ impl ops::Add<Matrix> for Matrix {
         if self.cols != second.cols || self.rows != second.rows {
             panic!("Matrix dimensions do not match!");
         }
-        let mut result = Matrix::new(self.rows, self.cols);
+        let mut result = self.clone();
         for i in 0..self.data.len() {
-            result.data[i] = self.data[i] + second.data[i];
+            result.data[i] += second.data[i];
+        }
+        result
+    }
+}
+
+impl ops::Sub<Matrix> for Matrix {
+    type Output = Matrix;
+
+    fn sub(self, second: Matrix) -> Matrix {
+        if self.cols != second.cols || self.rows != second.rows {
+            panic!("Matrix dimensions do not match!");
+        }
+        let mut result = self.clone();
+        for i in 0..self.data.len() {
+            result.data[i] -= second.data[i];
         }
         result
     }
@@ -127,17 +146,18 @@ impl Network {
         self.output.weights.randomize(-1.0, 1.0);
         self.output.bias.randomize(-10.0, 10.0);
     }
-    pub fn propagate(&self, input:  Matrix, activation: fn(&f64)->f64) -> Result<Matrix, &str> {
+    pub fn fullinfer(&self, input: Matrix, activation: fn(&f64) -> f64) -> Result<Matrix, &str> {
         if input.rows != self.input_size {
             return Err("Input size mismatch");
         }
-        let mut values: Matrix = input.clone(); 
+        let mut values: Matrix = input.clone();
         for i in 0..self.hidden_layers.len() {
-            values = values*self.hidden_layers[i].weights.clone() + self.hidden_layers[i].bias.clone();
+            values =
+                values * self.hidden_layers[i].weights.clone() + self.hidden_layers[i].bias.clone();
             // We activate
             values.data = values.data.iter().map(activation).collect();
         }
-        values = values*self.output.weights.clone() + self.output.bias.clone();
+        values = values * self.output.weights.clone() + self.output.bias.clone();
         values.data = values.data.iter().map(activation).collect();
         Ok(values)
     }
@@ -152,6 +172,13 @@ fn relu(value: &f64) -> f64 {
         0.0
     }
 }
+
+fn squared_error(input: Matrix, output: Matrix) -> Matrix {
+    let mut cost = output - input;
+    cost.data = cost.data.iter().map(|x| (*x).powf(2.0)).collect();
+    cost
+}
+
 fn main() {
     let mut network = Network::new(28 * 28, vec![16, 16], 10);
     network.randomize();
