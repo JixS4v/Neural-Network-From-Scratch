@@ -143,6 +143,15 @@ impl Network {
     }
 }
 
+// Rectified Linear Unit function for activation
+fn relu(value: &f64) -> f64 {
+    let value = *value;
+    if value > 0.0 {
+        value
+    } else {
+        0.0
+    }
+}
 fn main() {
     let mut network = Network::new(28 * 28, vec![16, 16], 10);
     network.randomize();
