@@ -99,6 +99,28 @@ impl ops::Mul<f64> for Matrix {
         result
     }
 }
+
+impl ops::Mul<&Matrix> for &Matrix {
+    type Output = Matrix;
+
+    fn mul(self, second: &Matrix) -> Matrix {
+        if self.cols != second.rows {
+            panic!("Matrix dimensions do not match!");
+        }
+        let mut result = Matrix::new(self.rows, second.cols);
+        for i in 0..self.rows {
+            for j in 0..second.cols {
+                let mut sum: f64 = 0.0;
+                for k in 0..second.rows {
+                    sum += self.data[i * self.cols + k] * second.data[k * second.cols + j];
+                }
+                result.data[i * second.cols + j] = sum;
+            }
+        }
+        result
+    }
+}
+
 pub struct Layer {
     pub weights: Matrix,
     pub bias: Matrix,
@@ -117,6 +139,12 @@ pub struct Network {
     input_size: usize,
     hidden_layers: Vec<Layer>,
     output: Layer,
+}
+
+pub struct NetworkState {
+    input_neurons: Matrix,
+    hidden_layer_neurons: Vec<Matrix>,
+    output_neurons: Matrix,
 }
 
 impl Network {
@@ -146,7 +174,8 @@ impl Network {
         self.output.weights.randomize(-1.0, 1.0);
         self.output.bias.randomize(-10.0, 10.0);
     }
-    pub fn fullinfer(&self, input: Matrix, activation: fn(&f64) -> f64) -> Result<Matrix, &str> {
+    // Returns only the output neurons with the input neurons
+    pub fn quick_infer(&self, input: Matrix, activation: fn(&f64) -> f64) -> Result<Matrix, &str> {
         if input.rows != self.input_size {
             return Err("Input size mismatch");
         }
@@ -161,6 +190,52 @@ impl Network {
         values.data = values.data.iter().map(activation).collect();
         Ok(values)
     }
+    pub fn forward_propagate(
+        &self,
+        input: &Matrix,
+        activation: fn(&f64) -> f64,
+    ) -> Result<NetworkState, &str> {
+        if input.rows != self.input_size {
+            return Err("Input size mismatch");
+        }
+        let mut hidden_layer_neurons: Vec<Matrix> = Vec::new();
+        for i in 0..self.hidden_layers.len() {
+            hidden_layer_neurons
+                .push(input * &self.hidden_layers[i].weights + self.hidden_layers[i].bias.clone());
+            hidden_layer_neurons[i].data = hidden_layer_neurons[i]
+                .data
+                .iter()
+                .map(activation)
+                .collect();
+        }
+        let hidden_neurons_last_index = hidden_layer_neurons.len() - 1;
+        let mut output_neurons = &hidden_layer_neurons[hidden_neurons_last_index]
+            * &self.output.weights
+            + self.output.bias.clone();
+        output_neurons.data = output_neurons.data.iter().map(activation).collect();
+        return Ok(NetworkState::new(
+            input.clone(),
+            hidden_layer_neurons,
+            output_neurons,
+        ));
+    }
+}
+
+impl NetworkState {
+    pub fn new(
+        input_neurons: Matrix,
+        hidden_layer_neurons: Vec<Matrix>,
+        output_neurons: Matrix,
+    ) -> NetworkState {
+        NetworkState {
+            input_neurons,
+            hidden_layer_neurons,
+            output_neurons,
+        }
+    }
+
+    // Calculating the gradient by backpropagation
+    pub fn backpropagate(&self, network: Network) -> Vec<Matrix> {}
 }
 
 // Rectified Linear Unit function for activation
